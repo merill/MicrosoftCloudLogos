@@ -26026,6 +26026,11 @@ const contributors = [
     "contributions": 3
   },
   {
+    "name": "Merill Fernando",
+    "github_username": "merill",
+    "contributions": 3
+  },
+  {
     "name": "LinkeD365",
     "github_username": "LinkeD365",
     "contributions": 2
@@ -26033,11 +26038,6 @@ const contributors = [
   {
     "name": "Yannick Reekmans",
     "github_username": "YannickRe",
-    "contributions": 2
-  },
-  {
-    "name": "Merill Fernando",
-    "github_username": "merill",
     "contributions": 2
   },
   {
