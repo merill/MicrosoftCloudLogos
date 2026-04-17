@@ -1,0 +1,20 @@
+name: notify-yako
+
+# Triggers the yako repo's sync-upstream workflow whenever this repo changes,
+# so the Yako extension icon catalog rebuilds within seconds of a push.
+
+on:
+    push:
+        branches: [main]
+    workflow_dispatch:
+
+jobs:
+    notify:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Trigger yako sync
+              env:
+                  GH_TOKEN: ${{ secrets.YAKO_DISPATCH_TOKEN }}
+              run: |
+                  gh api repos/merill/yako/dispatches \
+                      -f event_type=upstream-logos-changed
