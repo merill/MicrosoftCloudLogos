@@ -1,0 +1,91 @@
+name: Sync Upstream (No Deletes)
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch upstream
+        run: |
+          git remote add upstream https://github.com/loryanstrant/MicrosoftCloudLogos.git || true
+          git fetch upstream
+
+      - name: Check for new upstream changes
+        id: check
+        run: |
+          MERGE_BASE=$(git merge-base HEAD upstream/main)
+          UPSTREAM_HEAD=$(git rev-parse upstream/main)
+          if [ "$MERGE_BASE" = "$UPSTREAM_HEAD" ]; then
+            echo "No new upstream changes."
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "Upstream has new changes."
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Save pre-merge file list
+        if: steps.check.outputs.has_changes == 'true'
+        run: |
+          git rev-parse HEAD > /tmp/pre_merge_sha.txt
+          git ls-files > /tmp/pre_merge_files.txt
+
+      - name: Merge upstream
+        if: steps.check.outputs.has_changes == 'true'
+        run: |
+          if ! git merge upstream/main --no-edit -X theirs; then
+            echo "Merge conflict — falling back to file-level sync."
+            git merge --abort
+
+            # Only bring in Added and Modified files from upstream
+            MERGE_BASE=$(git merge-base HEAD upstream/main)
+            for file in $(git diff --name-only --diff-filter=AM "$MERGE_BASE" upstream/main); do
+              mkdir -p "$(dirname "$file")"
+              git show "upstream/main:$file" > "$file"
+              git add "$file"
+            done
+            git commit -m "Sync upstream changes (file-level) [automated]" || true
+          fi
+
+      - name: Restore deleted files
+        if: steps.check.outputs.has_changes == 'true'
+        run: |
+          PRE_MERGE=$(cat /tmp/pre_merge_sha.txt)
+          RESTORED=0
+          while IFS= read -r file; do
+            if [ ! -f "$file" ]; then
+              echo "Restoring deleted file: $file"
+              git checkout "$PRE_MERGE" -- "$file"
+              RESTORED=$((RESTORED + 1))
+            fi
+          done < /tmp/pre_merge_files.txt
+
+          if [ "$RESTORED" -gt 0 ]; then
+            git add -A
+            git commit -m "Restore $RESTORED file(s) removed by upstream merge [automated]"
+            echo "Restored $RESTORED file(s)."
+          else
+            echo "No files were deleted — nothing to restore."
+          fi
+
+      - name: Push changes
+        if: steps.check.outputs.has_changes == 'true'
+        run: git push
