@@ -26036,6 +26036,11 @@ const contributors = [
     "contributions": 2
   },
   {
+    "name": "Merill Fernando",
+    "github_username": "merill",
+    "contributions": 2
+  },
+  {
     "name": "Jukka Niiranen",
     "github_username": "jukkan",
     "contributions": 1
@@ -26043,11 +26048,6 @@ const contributors = [
   {
     "name": "Kevin McDonnell",
     "github_username": "kevmcdonk",
-    "contributions": 1
-  },
-  {
-    "name": "Merill Fernando",
-    "github_username": "merill",
     "contributions": 1
   }
 ];
